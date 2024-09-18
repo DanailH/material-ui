@@ -6,6 +6,7 @@ githubLabel: 'component: slider'
 materialDesign: https://m2.material.io/components/sliders
 waiAria: https://www.w3.org/WAI/ARIA/apg/patterns/slider-multithumb/
 unstyled: /base-ui/react-slider/
+githubSource: packages/mui-material/src/Slider
 ---
 
 # Slider
@@ -93,7 +94,7 @@ You can learn more about this in the [overrides documentation page](/material-ui
 
 ### Music player
 
-{{"demo": "MusicPlayerSlider.js"}}
+{{"demo": "MusicPlayerSlider.js", "bg": "inline"}}
 
 ## Vertical sliders
 

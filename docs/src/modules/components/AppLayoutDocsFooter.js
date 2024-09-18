@@ -81,7 +81,7 @@ function orderedPages(pages, current = []) {
 }
 
 async function postFeedback(data) {
-  const env = window.location.host.indexOf('mui.com') !== -1 ? 'prod' : 'dev';
+  const env = process.env.DEPLOY_ENV === 'production' ? 'prod' : 'dev';
   try {
     const response = await fetch(`${process.env.FEEDBACK_URL}/${env}/feedback`, {
       method: 'POST',
@@ -341,7 +341,7 @@ export default function AppLayoutDocsFooter(props) {
     processFeedback();
   };
 
-  // See https://github.com/mui/mui-toolpad/issues/1164 for context.
+  // See https://github.com/mui/toolpad/issues/1164 for context.
   const handleKeyDownForm = (event) => {
     const modifierKey = (event.metaKey || event.ctrlKey) && !event.shiftKey;
 
@@ -407,16 +407,14 @@ export default function AppLayoutDocsFooter(props) {
             <Tooltip title={t('feedbackYes')}>
               <IconButton onClick={handleClickThumb(1)} aria-pressed={rating === 1}>
                 <ThumbUpAltRoundedIcon
-                  color={rating === 1 ? 'primary' : undefined}
-                  sx={{ fontSize: 15 }}
+                  sx={{ fontSize: 15, color: rating === 1 ? 'primary' : 'text.secondary' }}
                 />
               </IconButton>
             </Tooltip>
             <Tooltip title={t('feedbackNo')}>
               <IconButton onClick={handleClickThumb(0)} aria-pressed={rating === 0}>
                 <ThumbDownAltRoundedIcon
-                  color={rating === 0 ? 'error' : undefined}
-                  sx={{ fontSize: 15 }}
+                  sx={{ fontSize: 15, color: rating === 0 ? 'error' : 'text.secondary' }}
                 />
               </IconButton>
             </Tooltip>

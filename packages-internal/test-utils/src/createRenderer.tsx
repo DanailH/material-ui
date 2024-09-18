@@ -14,8 +14,12 @@ import {
   prettyDOM,
   within,
   RenderResult,
+  screen as rtlScreen,
+  Screen,
 } from '@testing-library/react/pure';
+import { userEvent } from '@testing-library/user-event';
 import { useFakeTimers } from 'sinon';
+import reactMajor from './reactMajor';
 
 interface Interaction {
   id: number;
@@ -268,6 +272,7 @@ interface ServerRenderConfiguration extends RenderConfiguration {
 export type RenderOptions = Partial<RenderConfiguration>;
 
 export interface MuiRenderResult extends RenderResult<typeof queries & typeof customQueries> {
+  user: ReturnType<typeof userEvent.setup>;
   forceUpdate(): void;
   /**
    * convenience helper. Better than repeating all props.
@@ -296,6 +301,7 @@ function render(
   );
   const result: MuiRenderResult = {
     ...testingLibraryRenderResult,
+    user: userEvent.setup(),
     forceUpdate() {
       traceSync('forceUpdate', () =>
         testingLibraryRenderResult.rerender(
@@ -333,7 +339,7 @@ function renderToString(
   };
 }
 
-interface Clock {
+export interface Clock {
   /**
    * Runs all timers until there are no more remaining.
    * WARNING: This may cause an infinite loop if a timeout constantly schedules another timeout.
@@ -363,9 +369,13 @@ interface Clock {
   restore(): void;
 }
 
-type ClockConfig = undefined | number | Date;
+export type ClockConfig = undefined | number | Date;
 
-function createClock(defaultMode: 'fake' | 'real', config: ClockConfig): Clock {
+function createClock(
+  defaultMode: 'fake' | 'real',
+  config: ClockConfig,
+  options?: Exclude<Parameters<typeof useFakeTimers>[0], number | Date>,
+): Clock {
   let clock: ReturnType<typeof useFakeTimers> | null = null;
 
   let mode = defaultMode;
@@ -378,6 +388,7 @@ function createClock(defaultMode: 'fake' | 'real', config: ClockConfig): Clock {
         // Technically we'd want to reset all modules between tests but we don't have that technology.
         // In the meantime just continue to clear native timers like with did for the past years when using `sinon` < 8.
         shouldClearNativeTimers: true,
+        ...options,
       });
     }
   });
@@ -436,7 +447,7 @@ function createClock(defaultMode: 'fake' | 'real', config: ClockConfig): Clock {
   };
 }
 
-interface Renderer {
+export interface Renderer {
   clock: Clock;
   render(element: React.ReactElement<any>, options?: RenderOptions): MuiRenderResult;
   renderToString(
@@ -451,6 +462,7 @@ export interface CreateRendererOptions extends Pick<RenderOptions, 'strict' | 's
    */
   clock?: 'fake' | 'real';
   clockConfig?: ClockConfig;
+  clockOptions?: Parameters<typeof createClock>[2];
 }
 
 export function createRenderer(globalOptions: CreateRendererOptions = {}): Renderer {
@@ -459,10 +471,11 @@ export function createRenderer(globalOptions: CreateRendererOptions = {}): Rende
     clockConfig,
     strict: globalStrict = true,
     strictEffects: globalStrictEffects = globalStrict,
+    clockOptions,
   } = globalOptions;
   // save stack to re-use in test-hooks
   const { stack: createClientRenderStack } = new Error();
-  const clock = createClock(clockMode, clockConfig);
+  const clock = createClock(clockMode, clockConfig, clockOptions);
 
   /**
    * Flag whether `createRenderer` was called in a suite i.e. describe() block.
@@ -563,7 +576,7 @@ export function createRenderer(globalOptions: CreateRendererOptions = {}): Rende
       wrapper: InnerWrapper = React.Fragment,
     } = options;
 
-    const usesLegacyRoot = !React.version.startsWith('18');
+    const usesLegacyRoot = reactMajor < 18;
     const Mode = strict && (strictEffects || usesLegacyRoot) ? React.StrictMode : React.Fragment;
     return function Wrapper({ children }: { children?: React.ReactNode }) {
       return (
@@ -732,6 +745,8 @@ function act<T>(callback: () => void | T | Promise<T>) {
   return traceSync('act', () => rtlAct(callback));
 }
 
+const bodyBoundQueries = within(document.body, { ...queries, ...customQueries });
+
 export * from '@testing-library/react/pure';
-export { act, cleanup, fireEvent };
-export const screen = within(document.body, { ...queries, ...customQueries });
+export { act, fireEvent };
+export const screen: Screen & typeof bodyBoundQueries = { ...rtlScreen, ...bodyBoundQueries };
